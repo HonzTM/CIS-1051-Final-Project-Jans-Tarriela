@@ -1,5 +1,3 @@
-#Python 3.11.1 (tags/v3.11.1:a7a450f, Dec  6 2022, 19:58:39) [MSC v.1934 64 bit (AMD64)] on win32
-#Type "help", "copyright", "credits" or "license()" for more information.
 import discord
 from discord.ext import commands
 
@@ -32,6 +30,10 @@ def timeFormat(mins):
             hours = 12
     return f"{hours:02d}:{mins:02d}{ampm}"
 
+@bot.command(name = "hello", description ="This is a command")
+async def hello(ctx):
+    await ctx.send("Hello!")
+
 freeTimes = {}
 
 @bot.command()
@@ -50,20 +52,13 @@ async def free(ctx, *, schedule):
     freeTimes[day][startTime][user_id] = endTime
     await ctx.send(f"You have been registered as available from {timeFormat(startTime)} to {timeFormat(endTime)} on {day}")
 
-async def on_message(message):
-    if message.author == ctx.author:
-        return
-    if message.content.startswith("!schedule"):
-        await schedule(message)
-
-bot.add_listener(on_message)
-
-async def schedule(message):
-    time, day, comment = message.content.split(", ")
+@bot.command()
+async def schedule(ctx, *, when):
+    time, day, comment = when.split(", ")
     time = convertTime(time)
     day = day.strip().lower()
     if day not in freeTimes:
-        await message.channel.send(f"There are no users available on {day}.")
+        await ctx.send(f"There are no users available on {day}.")
         return
     availableUsers = []
     for start_time, users in freeTimes[day].items():
@@ -71,11 +66,17 @@ async def schedule(message):
             if start_time <= time < end_time:
                 availableUsers.append(user_id)
     if not availableUsers:
-        await message.channel.send(f"There are no users available around {timeFormat(time)} on {day}.")
+        await ctx.send(f"There are no users available around {timeFormat(time)} on {day}.")
         return
-    mention_list = [f'<@{user}>' for user in availableUsers]
-    message = f"{', '.join(mention_list)}, you have registered that you are available around this time. {message.author.mention} says \"{comment}\""
-    await message.channel.send(message)
-    await message.delete()
+    message = f"{', '.join(f'<@{user}>' for user in availableUsers)}, you have registered that you are available around this time. {ctx.author.mention} says \"{comment}\""
+    await ctx.send(message)
+    await ctx.message.delete()
+    
+@bot.listen()
+async def on_message(message):
+    if message.author == bot.user:
+        return
+    if "ping" in message.content.lower():
+        await message.channel.send("pong!")
 
-bot.run(bot token)
+bot.run(bot token here)
